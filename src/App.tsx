@@ -29,9 +29,19 @@ function App() {
     const lightY = 50;
     const lightColor = `rgba(255, 255, 220, ${lightIntensity / 200})`;
 
+    const modelImageUrl = 'https://storage.googleapis.com/agent-tools-dev-assets/Photography-Simulator-Model.png';
+    const backgroundImageUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuCFhRsc_E4fjaUa79A8y9Xf9S3bck_KEVhv_ga0Phz3oBxeqYuu-slo4wC6dsbPwPvtuGPjcyjkcsdCjCUcjaNFNf7majTl3JkK0b1RZWPJ5OR6DrvuMkRFJiLksMLGh8sIuSsCkXwC-7SLbd_Tzf6vTOx5f1HQpWCABgilB9XHQV7hd7ZdZRA4Aossjlk_vr0A0TK1-hcEezFPoSqVM8_CF8Ykctjaesbe3vI40wx5Ft_IKljVbCuBxpJMnWb9OZ2QLlQO-3MMnzM";
+
     return {
       filter: `blur(${blur}px) brightness(${brightness})`,
-      backgroundImage: `radial-gradient(circle at ${lightX}% ${lightY}%, ${lightColor} 0%, transparent 50%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuCFhRsc_E4fjaUa79A8y9Xf9S3bck_KEVhv_ga0Phz3oBxeqYuu-slo4wC6dsbPwPvtuGPjcyjkcsdCjCUcjaNFNf7majTl3JkK0b1RZWPJ5OR6DrvuMkRFJiLksMLGh8sIuSsCkXwC-7SLbd_Tzf6vTOx5f1HQpWCABgilB9XHQV7hd7ZdZRA4Aossjlk_vr0A0TK1-hcEezFPoSqVM8_CF8Ykctjaesbe3vI40wx5Ft_IKljVbCuBxpJMnWb9OZ2QLlQO-3MMnzM")`,
+      backgroundImage: `
+        radial-gradient(circle at ${lightX}% ${lightY}%, ${lightColor} 0%, transparent 50%),
+        url("${modelImageUrl}"),
+        url("${backgroundImageUrl}")
+      `,
+      backgroundSize: 'auto, contain, cover',
+      backgroundRepeat: 'no-repeat, no-repeat, no-repeat',
+      backgroundPosition: 'center, center, center',
     };
   };
 
@@ -55,7 +65,7 @@ function App() {
     return "Ajuste os controles para encontrar a configuração ideal.";
   };
 
-  const imageClassName = `relative w-full aspect-video rounded-lg bg-cover bg-center overflow-hidden ${settings.exposureTime > 800 ? "motion-blur" : ""}`;
+  const imageClassName = `relative w-full aspect-video rounded-lg overflow-hidden ${settings.exposureTime > 800 ? "motion-blur" : ""}`;
 
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col bg-[#fcfbf8] group/design-root overflow-x-hidden" style={{ fontFamily: 'Lexend, "Noto Sans", sans-serif' }}>
