@@ -29,7 +29,7 @@ function App() {
     const lightY = 50;
     const lightColor = `rgba(255, 255, 220, ${lightIntensity / 200})`;
 
-    const modelImageUrl = 'https://storage.googleapis.com/agent-tools-dev-assets/Photography-Simulator-Model.png';
+    const modelImageUrl = '/assets/images/model.png';
     const backgroundImageUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuCFhRsc_E4fjaUa79A8y9Xf9S3bck_KEVhv_ga0Phz3oBxeqYuu-slo4wC6dsbPwPvtuGPjcyjkcsdCjCUcjaNFNf7majTl3JkK0b1RZWPJ5OR6DrvuMkRFJiLksMLGh8sIuSsCkXwC-7SLbd_Tzf6vTOx5f1HQpWCABgilB9XHQV7hd7ZdZRA4Aossjlk_vr0A0TK1-hcEezFPoSqVM8_CF8Ykctjaesbe3vI40wx5Ft_IKljVbCuBxpJMnWb9OZ2QLlQO-3MMnzM";
 
     return {
