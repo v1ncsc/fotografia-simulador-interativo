@@ -2,16 +2,18 @@ import React from 'react';
 import Slider from './Slider';
 import Tooltip from './Tooltip';
 
+type CameraSettings = {
+  aperture: number;
+  iso: number;
+  exposureTime: number;
+  lightIntensity: number;
+  lightPosition: number;
+};
+
 interface CameraControlsProps {
-  settings: {
-    aperture: number;
-    iso: number;
-    exposureTime: number;
-    lightIntensity: number;
-    lightPosition: number;
-  };
-  setSettings: React.Dispatch<React.SetStateAction<any>>;
-  defaultSettings: any;
+  settings: CameraSettings;
+  setSettings: React.Dispatch<React.SetStateAction<CameraSettings>>;
+  defaultSettings: CameraSettings;
 }
 
 const CameraControls: React.FC<CameraControlsProps> = ({
@@ -20,8 +22,8 @@ const CameraControls: React.FC<CameraControlsProps> = ({
 }) => {
   const { aperture, iso, exposureTime, lightIntensity, lightPosition } = settings;
 
-  const handleSettingChange = (setting: string, value: number) => {
-    setSettings((prev: any) => ({ ...prev, [setting]: value }));
+  const handleSettingChange = (setting: keyof CameraSettings, value: number) => {
+    setSettings((prev) => ({ ...prev, [setting]: value }));
   };
 
   return (

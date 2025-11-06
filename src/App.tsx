@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import CameraControls from "./components/CameraControls";
 
 // Default camera settings
@@ -16,7 +16,7 @@ function App() {
 
   // Function to get image style based on settings
   const getImageStyle = () => {
-    const { aperture, iso, lightIntensity, lightPosition } = settings;
+    const { aperture, lightIntensity, lightPosition } = settings;
 
     // Base brightness adjustment
     const brightness = 1 + (lightIntensity - 50) / 100;
