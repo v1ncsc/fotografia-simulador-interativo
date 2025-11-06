@@ -1,78 +1,99 @@
 import React from 'react';
 import Slider from './Slider';
 import Tooltip from './Tooltip';
-import { Aperture, Iso, ExposureTime } from '../types';
 
-// Helper to format exposure time for display
-const formatExposureTime = (val: number): string => {
-  if (val < 1) {
-    return `1/${Math.round(1 / val)}s`;
-  }
-  return `${val}"`;
+type CameraSettings = {
+  aperture: number;
+  iso: number;
+  exposureTime: number;
+  lightIntensity: number;
+  lightPosition: number;
 };
 
 interface CameraControlsProps {
-  aperture: Aperture;
-  setAperture: React.Dispatch<React.SetStateAction<Aperture>>;
-  iso: Iso;
-  setIso: React.Dispatch<React.SetStateAction<Iso>>;
-  exposureTime: ExposureTime;
-  setExposureTime: React.Dispatch<React.SetStateAction<ExposureTime>>;
-  apertureValue: number;
-  isoValue: number;
-  exposureTimeValue: number;
+  settings: CameraSettings;
+  setSettings: React.Dispatch<React.SetStateAction<CameraSettings>>;
+  defaultSettings: CameraSettings;
 }
 
 const CameraControls: React.FC<CameraControlsProps> = ({
-  aperture,
-  setAperture,
-  iso,
-  setIso,
-  exposureTime,
-  setExposureTime,
-  apertureValue,
-  isoValue,
-  exposureTimeValue,
+  settings,
+  setSettings,
 }) => {
+  const { aperture, iso, exposureTime, lightIntensity, lightPosition } = settings;
+
+  const handleSettingChange = (setting: keyof CameraSettings, value: number) => {
+    setSettings((prev) => ({ ...prev, [setting]: value }));
+  };
+
   return (
-    <div className="w-[1000px] bg-gray-800 rounded-lg p-6 shadow-lg mt-8 slider-container">
-      <div className="grid grid-cols-3 gap-6">
-        <Tooltip text="Abertura (f-stop): Controla o desfoque do fundo (profundidade de campo).">
-          <Slider
-            label="Abertura"
-            value={`f/${apertureValue.toFixed(1)}`}
-            min={0}
-            max={7}
-            step={1}
-            currentValue={aperture}
-            onChange={(e) => setAperture(parseInt(e.target.value) as Aperture)}
-          />
-        </Tooltip>
+    <div>
+      <h2 className="text-[#1c170d] text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Controles da Câmera e Iluminação</h2>
 
-        <Tooltip text="ISO: Controla o brilho geral e o ruído da imagem.">
-          <Slider
-            label="ISO"
-            value={isoValue.toString()}
-            min={0}
-            max={6}
-            step={1}
-            currentValue={iso}
-            onChange={(e) => setIso(parseInt(e.target.value) as Iso)}
-          />
-        </Tooltip>
+      <Tooltip text="Controla a quantidade de luz que entra na câmera e a profundidade de campo.">
+        <Slider
+          label="Abertura"
+          value={`f/${aperture.toFixed(1)}`}
+          description=""
+          min={1.4}
+          max={22}
+          step={0.1}
+          currentValue={aperture}
+          onChange={(e) => handleSettingChange('aperture', parseFloat(e.target.value))}
+        />
+      </Tooltip>
 
-        <Tooltip text="Tempo de Exposição: O principal controle de brilho da sua foto.">
-          <Slider
-            label="Tempo de Exposição"
-            value={formatExposureTime(exposureTimeValue)}
-            min={0}
-            max={11}
-            step={1}
-            currentValue={exposureTime}
-            onChange={(e) => setExposureTime(parseInt(e.target.value) as ExposureTime)}
-          />
-        </Tooltip>
-      </div>
+      <Tooltip text="Define a sensibilidade do sensor à luz. Valores mais altos são úteis em ambientes com pouca luz, mas podem gerar ruído na imagem.">
+        <Slider
+          label="ISO"
+          value={iso.toString()}
+          description=""
+          min={100}
+          max={6400}
+          step={100}
+          currentValue={iso}
+          onChange={(e) => handleSettingChange('iso', parseInt(e.target.value, 10))}
+        />
+      </Tooltip>
+
+      <Tooltip text="Determina por quanto tempo o sensor fica exposto à luz. Tempos mais longos capturam mais luz, mas podem causar desfoque em objetos em movimento.">
+        <Slider
+          label="Tempo de Exposição"
+          value={`1/${exposureTime}s`}
+          description=""
+          min={1}
+          max={1000}
+          step={1}
+          currentValue={exposureTime}
+          onChange={(e) => handleSettingChange('exposureTime', parseInt(e.target.value, 10))}
+        />
+      </Tooltip>
+
+      <Tooltip text="Ajusta o brilho da fonte de luz principal.">
+        <Slider
+          label="Intensidade da Luz"
+          value={`${lightIntensity}%`}
+          description=""
+          min={0}
+          max={100}
+          step={1}
+          currentValue={lightIntensity}
+          onChange={(e) => handleSettingChange('lightIntensity', parseInt(e.target.value, 10))}
+        />
+      </Tooltip>
+
+      <Tooltip text="Controla o ângulo da luz em relação ao objeto, afetando sombras e reflexos.">
+        <Slider
+          label="Posição da Luz"
+          value={`${lightPosition}°`}
+          description=""
+          min={0}
+          max={90}
+          step={1}
+          currentValue={lightPosition}
+          onChange={(e) => handleSettingChange('lightPosition', parseInt(e.target.value, 10))}
+        />
+      </Tooltip>
     </div>
   );
 };

@@ -1,120 +1,108 @@
-// src/App.tsx
-import { useState, useMemo } from 'react';
-import CameraControls from './components/CameraControls';
-import { Aperture, Iso, ExposureTime } from './types';
+import React, { useState } from "react";
+import CameraControls from "./components/CameraControls";
+
+// Default camera settings
+const defaultSettings = {
+  aperture: 2.8,
+  iso: 100,
+  exposureTime: 200,
+  lightIntensity: 50,
+  lightPosition: 45,
+};
 
 function App() {
-  const [aperture, setAperture] = useState<Aperture>(0); // 0-7, maps to f/1.4-f/22
-  const [iso, setIso] = useState<Iso>(0); // 0-6, maps to 100-6400
-  const [exposureTime, setExposureTime] = useState<ExposureTime>(0); // 0-11, maps to 1/4000s to 1s
+  // State for camera settings
+  const [settings, setSettings] = useState(defaultSettings);
 
-  const APERTURE_MAP: number[] = [1.4, 2, 2.8, 4, 5.6, 8, 11, 22];
-  const ISO_MAP: number[] = [100, 200, 400, 800, 1600, 3200, 6400];
-  const EXP_TIME_MAP: number[] = [1/4000, 1/2000, 1/1000, 1/500, 1/250, 1/125, 1/60, 1/30, 1/15, 1/8, 1/4, 1];
+  // Function to get image style based on settings
+  const getImageStyle = () => {
+    const { aperture, lightIntensity, lightPosition } = settings;
 
+    // Base brightness adjustment
+    const brightness = 1 + (lightIntensity - 50) / 100;
 
-  // --- GET IMAGE STYLE ---
-  const getImageStyle = useMemo(() => {
-    const currentAperture = APERTURE_MAP[aperture];
-    const currentIso = ISO_MAP[iso];
-    const currentExpTime = EXP_TIME_MAP[exposureTime];
+    // Blur effect for aperture
+    const blur = Math.max(0, 5 - aperture);
 
-    // 1. Blur (controlled by Aperture)
-    const getBlur = () => {
-      // Non-linear mapping for a more realistic effect
-      const blurVal = (1 - ((currentAperture - 1.4) / (22 - 1.4))) ** 2 * 20;
-      return Math.max(0, Math.min(20, blurVal));
-    };
+    // Calculate light gradient based on position and intensity
+    const lightX = 50 + (lightPosition - 45);
+    const lightY = 50;
+    const lightColor = `rgba(255, 255, 220, ${lightIntensity / 200})`;
 
-    // 2. Brightness (controlled by ISO + Exposure Time)
-    const getBrightness = () => {
-        // Refined formula for better visual range
-        const isoContribution = Math.log2(currentIso / 100) * 0.15; // Logarithmic response
-        const exposureContribution = Math.log2(currentExpTime / (1/4000)) * 0.1; // Logarithmic response, relative to base
-        const baseBrightness = 0.5; // Start from a darker base
-        const totalBrightness = baseBrightness + isoContribution + exposureContribution;
-        return Math.max(0.1, Math.min(2.5, totalBrightness));
-    };
-
-    // 3. Grain/Noise (controlled by ISO)
-    const getGrain = () => {
-      const noiseAmount = Math.max(0, (currentIso - 100) / (6400 - 100)) * 0.25;
-      return noiseAmount;
-    };
-
-
-    const brightnessValue = getBrightness();
+    const modelImageUrl = '/assets/images/model.png';
 
     return {
-      backgroundStyle: {
-        filter: `blur(${getBlur()}px) brightness(${brightnessValue})`,
-        backgroundImage: 'url(/studio-background.jpg)',
-      },
-      modelStyle: {
-        filter: `brightness(${brightnessValue})`,
-      },
-      noiseStyle: {
-        opacity: getGrain(),
-      },
-      brightnessValue: brightnessValue,
+      filter: `blur(${blur}px) brightness(${brightness})`,
+      backgroundImage: `
+        radial-gradient(circle at ${lightX}% ${lightY}%, ${lightColor} 0%, transparent 50%),
+        url("${modelImageUrl}")
+      `,
+      backgroundSize: 'auto, contain',
+      backgroundRepeat: 'no-repeat, no-repeat',
+      backgroundPosition: 'center, center',
     };
-  }, [aperture, iso, exposureTime]);
+  };
 
+  // Function to get grain style based on ISO
+  const getGrainStyle = () => {
+    const grainOpacity = settings.iso > 400 ? (settings.iso - 400) / 1600 : 0;
+    return {
+      '--grain-opacity': grainOpacity,
+    } as React.CSSProperties;
+  };
 
-  // --- GET FEEDBACK MESSAGE ---
-  const getFeedbackMessage = useMemo(() => {
-    const currentAperture = APERTURE_MAP[aperture];
-    const currentIso = ISO_MAP[iso];
-    const { brightnessValue } = getImageStyle;
+  // Function to get feedback message based on settings
+  const getFeedbackMessage = () => {
+    const { aperture, iso, exposureTime } = settings;
+    if (iso > 1600 || exposureTime > 500) {
+      return "Sua foto está superexposta";
+    }
+    if (aperture < 2.8 && iso < 400) {
+      return "Configuração ideal para retratos";
+    }
+    return "Ajuste os controles para encontrar a configuração ideal.";
+  };
 
-    if (brightnessValue > 1.8) return "Foto superexposta";
-    if (brightnessValue < 0.6) return "Foto subsexposta";
-    if (currentAperture <= 2.8) return "Bokeh perfeito para retratos!";
-    if (currentAperture >= 11) return "Tudo em foco, ideal para paisagens";
-    if (currentIso > 1600) return "ISO alto gera ruído visível";
-
-    return "Ajuste os controles para encontrar a foto perfeita.";
-  }, [aperture, iso, getImageStyle]);
-
+  const imageClassName = `relative w-full aspect-video rounded-lg overflow-hidden ${settings.exposureTime > 800 ? "motion-blur" : ""}`;
 
   return (
-    <div className="w-screen h-screen bg-gray-900 flex flex-col justify-center items-center font-sans">
-      <div className="relative w-[1000px] h-[667px] overflow-hidden rounded-lg shadow-2xl bg-black">
-        <div
-          className="absolute inset-0 bg-cover bg-center transition-all duration-300 ease-in-out"
-          style={getImageStyle.backgroundStyle}
-        />
-        <div
-          className="absolute inset-0 bg-contain bg-no-repeat bg-center"
-        >
-          <img
-            src="/model.png"
-            alt="Model"
-            className="w-full h-full object-contain transition-all duration-300 ease-in-out"
-            style={getImageStyle.modelStyle}
-          />
+    <div className="relative flex h-auto min-h-screen w-full flex-col bg-[#fcfbf8] group/design-root overflow-x-hidden" style={{ fontFamily: 'Lexend, "Noto Sans", sans-serif' }}>
+      <div className="layout-container flex h-full grow flex-col">
+        <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#f4efe7] px-10 py-3">
+          {/* Header content */}
+        </header>
+        <div className="px-40 flex flex-1 justify-center py-5">
+          <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
+            <h2 className="text-[#1c170d] tracking-light text-[28px] font-bold leading-tight px-4 text-left pb-3 pt-5">Simulador de Fotografia</h2>
+            <p className="text-[#1c170d] text-base font-normal leading-normal pb-3 pt-1 px-4">
+              Experimente com diferentes configurações de câmera e iluminação para dominar a arte da fotografia.
+            </p>
+            <div className="p-4">
+            <div
+              className={imageClassName}
+              style={getImageStyle()}
+            >
+              <div
+                className="grain-overlay"
+                style={getGrainStyle()}
+              />
+            </div>
+          </div>
+            <CameraControls settings={settings} setSettings={setSettings} defaultSettings={defaultSettings} />
+            <div className="text-center p-4 text-[#1c170d]">
+              {getFeedbackMessage()}
+            </div>
+            <div className="flex justify-center p-4">
+              <button
+                onClick={() => setSettings(defaultSettings)}
+                className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-[#f4efe7] text-[#1c170d] text-sm font-bold leading-normal tracking-[0.015em]"
+              >
+                Resetar Configurações
+              </button>
+            </div>
+          </div>
         </div>
-        <div
-          className="absolute inset-0 pointer-events-none noise-overlay"
-          style={getImageStyle.noiseStyle}
-        />
       </div>
-
-      <div className="absolute bottom-28 left-1/2 -translate-x-1/2 bg-black bg-opacity-50 text-white px-4 py-2 rounded-md text-center">
-          <p className="text-lg">{getFeedbackMessage}</p>
-      </div>
-
-      <CameraControls
-        aperture={aperture}
-        setAperture={setAperture}
-        iso={iso}
-        setIso={setIso}
-        exposureTime={exposureTime}
-        setExposureTime={setExposureTime}
-        apertureValue={APERTURE_MAP[aperture]}
-        isoValue={ISO_MAP[iso]}
-        exposureTimeValue={EXP_TIME_MAP[exposureTime]}
-      />
     </div>
   );
 }
