@@ -36,12 +36,11 @@ function App() {
       filter: `blur(${blur}px) brightness(${brightness})`,
       backgroundImage: `
         radial-gradient(circle at ${lightX}% ${lightY}%, ${lightColor} 0%, transparent 50%),
-        url("${modelImageUrl}"),
-        url("${backgroundImageUrl}")
+        url("${modelImageUrl}")
       `,
-      backgroundSize: 'auto, contain, cover',
-      backgroundRepeat: 'no-repeat, no-repeat, no-repeat',
-      backgroundPosition: 'center, center, center',
+      backgroundSize: 'auto, contain',
+      backgroundRepeat: 'no-repeat, no-repeat',
+      backgroundPosition: 'center, center',
     };
   };
 
