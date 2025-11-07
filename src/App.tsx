@@ -48,7 +48,7 @@ function App() {
     return {
       backgroundStyle: {
         filter: `blur(${getBlur()}px) brightness(${brightnessValue})`,
-        backgroundImage: 'url(/studio-background.jpg)',
+        backgroundImage: 'url(/assets/images/studio-background.jpg)',
       },
       modelStyle: {
         filter: `brightness(${brightnessValue})`,
@@ -88,7 +88,7 @@ function App() {
           className="absolute inset-0 bg-contain bg-no-repeat bg-center"
         >
           <img
-            src="/model.png"
+            src="/assets/images/model.png"
             alt="Model"
             className="w-full h-full object-contain transition-all duration-300 ease-in-out"
             style={getImageStyle.modelStyle}
