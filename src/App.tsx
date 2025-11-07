@@ -1,104 +1,205 @@
-import React, { useState } from "react";
-import CameraControls from "./components/CameraControls";
+import { useState } from 'react';
+import CameraControls from './components/CameraControls';
+import ExposureBar from './components/ExposureBar';
+import SceneSelector from './components/SceneSelector';
+import Tutorial from './components/Tutorial';
 
-// Default camera settings
-const defaultSettings = {
-  aperture: 2.8,
-  iso: 100,
-  exposureTime: 200,
-  lightIntensity: 50,
-  lightPosition: 45,
+// --- Types ---
+interface CameraSettings {
+  aperture: number;
+  shutterSpeed: number;
+  iso: number;
+  whiteBalance: number;
+  focalLength: number;
+  scene: string;
+}
+
+// --- Constants ---
+const defaultSettings: CameraSettings = {
+  aperture: 5.6,
+  shutterSpeed: 1/125,
+  iso: 400,
+  whiteBalance: 0,
+  focalLength: 50,
+  scene: 'portrait'
 };
 
+const SCENE_CONFIGS = {
+  portrait: { aperture: 2.8, shutterSpeed: 1/125, iso: 400, whiteBalance: 5500, focalLength: 85 },
+  landscape: { aperture: 8, shutterSpeed: 1/60, iso: 200, whiteBalance: 5500, focalLength: 24 },
+  sports: { aperture: 4, shutterSpeed: 1/500, iso: 800, whiteBalance: 5500, focalLength: 200 },
+  night: { aperture: 1.4, shutterSpeed: 1/30, iso: 1600, whiteBalance: 3200, focalLength: 50 },
+  macro: { aperture: 11, shutterSpeed: 1/125, iso: 400, whiteBalance: 5500, focalLength: 135 }
+};
+
+// --- Main Component ---
 function App() {
-  // State for camera settings
-  const [settings, setSettings] = useState(defaultSettings);
+  const [settings, setSettings] = useState<CameraSettings>(defaultSettings);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
 
-  // Function to get image style based on settings
+  // --- Event Handlers ---
+  const handleSceneChange = (scene: string) => {
+    if (SCENE_CONFIGS[scene as keyof typeof SCENE_CONFIGS]) {
+      setSettings(prev => ({ 
+        ...prev, 
+        ...SCENE_CONFIGS[scene as keyof typeof SCENE_CONFIGS],
+        scene 
+      }));
+    }
+  };
+
+  const handleResetSettings = () => {
+    setSettings(defaultSettings);
+  };
+
+  const handleNextTutorialStep = () => {
+    setTutorialStep(prev => prev + 1);
+  };
+
+  const scenes = Object.keys(SCENE_CONFIGS);
+
+  // --- Rendering Helpers ---
   const getImageStyle = () => {
-    const { aperture, lightIntensity, lightPosition } = settings;
+    const { aperture, shutterSpeed, iso, whiteBalance, focalLength } = settings;
+    
+    // Calculate exposure value (EV)
+    const ev = Math.log2((aperture * aperture) / shutterSpeed) - Math.log2(iso / 100);
+    
+    // Calculate brightness from EV (0 EV = properly exposed)
+    const brightness = Math.max(0.1, Math.min(2, Math.pow(2, -ev * 0.5) * 1.2));
+    
+    // Depth of field based on aperture
+    const dofBlur = Math.max(0, (aperture - 1.4) * 2);
+    
+    // Color temperature filter from white balance
+    const getColorFilter = (wb: number) => {
+      if (wb === 0) return 'none'; // Auto
+      if (wb <= 3200) return 'sepia(0.3) saturate(1.2)'; // Tungsten
+      if (wb <= 4000) return 'hue-rotate(10deg)'; // Fluorescent
+      if (wb <= 5500) return 'none'; // Daylight
+      if (wb <= 6500) return 'hue-rotate(-10deg) saturate(0.9)'; // Cloudy
+      return 'hue-rotate(-20deg) saturate(0.8)'; // Shade
+    };
 
-    // Base brightness adjustment
-    const brightness = 1 + (lightIntensity - 50) / 100;
-
-    // Blur effect for aperture
-    const blur = Math.max(0, 5 - aperture);
-
-    // Calculate light gradient based on position and intensity
-    const lightX = 50 + (lightPosition - 45);
-    const lightY = 50;
-    const lightColor = `rgba(255, 255, 220, ${lightIntensity / 200})`;
-
-    const modelImageUrl = '/assets/images/model.png';
-
+    // Field of view based on focal length (simulated crop)
+    const fovScale = Math.max(0.5, Math.min(1.5, 50 / focalLength));
+    
     return {
-      filter: `blur(${blur}px) brightness(${brightness})`,
-      backgroundImage: `
-        radial-gradient(circle at ${lightX}% ${lightY}%, ${lightColor} 0%, transparent 50%),
-        url("${modelImageUrl}")
-      `,
-      backgroundSize: 'auto, contain',
-      backgroundRepeat: 'no-repeat, no-repeat',
-      backgroundPosition: 'center, center',
+      filter: `brightness(${brightness}) blur(${dofBlur}px) ${getColorFilter(whiteBalance)}`,
+      transform: `scale(${fovScale})`,
+      transition: 'all 0.3s ease-in-out'
     };
   };
 
-  // Function to get grain style based on ISO
-  const getGrainStyle = () => {
-    const grainOpacity = settings.iso > 400 ? (settings.iso - 400) / 1600 : 0;
-    return {
-      '--grain-opacity': grainOpacity,
-    } as React.CSSProperties;
-  };
-
-  // Function to get feedback message based on settings
-  const getFeedbackMessage = () => {
-    const { aperture, iso, exposureTime } = settings;
-    if (iso > 1600 || exposureTime > 500) {
-      return "Sua foto está superexposta";
-    }
-    if (aperture < 2.8 && iso < 400) {
-      return "Configuração ideal para retratos";
-    }
-    return "Ajuste os controles para encontrar a configuração ideal.";
-  };
-
-  const imageClassName = `relative w-full aspect-video rounded-lg overflow-hidden ${settings.exposureTime > 800 ? "motion-blur" : ""}`;
-
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col bg-[#fcfbf8] group/design-root overflow-x-hidden" style={{ fontFamily: 'Lexend, "Noto Sans", sans-serif' }}>
-      <div className="layout-container flex h-full grow flex-col">
-        <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#f4efe7] px-10 py-3">
-          {/* Header content */}
-        </header>
-        <div className="px-40 flex flex-1 justify-center py-5">
-          <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
-            <h2 className="text-[#1c170d] tracking-light text-[28px] font-bold leading-tight px-4 text-left pb-3 pt-5">Simulador de Fotografia</h2>
-            <p className="text-[#1c170d] text-base font-normal leading-normal pb-3 pt-1 px-4">
-              Experimente com diferentes configurações de câmera e iluminação para dominar a arte da fotografia.
-            </p>
-            <div className="p-4">
-            <div
-              className={imageClassName}
-              style={getImageStyle()}
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
+
+      <div className="relative z-10 container mx-auto px-4 py-6 space-y-6">
+        {/* Header */}
+        <header className="text-center space-y-2 animate-fade-in-up">
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+            Simulador Interativo de Fotografia
+          </h1>
+          <p className="text-gray-300 text-lg max-w-2xl mx-auto">
+            Aprenda fotografia através da experimentação. Ajuste configurações e veja os resultados em tempo real.
+          </p>
+          <div className="flex justify-center gap-4 pt-2">
+            <button
+              onClick={() => setShowTutorial(!showTutorial)}
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200 font-medium"
             >
+              {showTutorial ? 'Ocultar Tutorial' : 'Mostrar Tutorial'}
+            </button>
+            <button
+              onClick={handleResetSettings}
+              className="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors duration-200 font-medium"
+            >
+              Resetar Configurações
+            </button>
+          </div>
+        </header>
+
+        {/* Tutorial */}
+        {showTutorial && (
+          <div className="animate-fade-in-up">
+            <Tutorial step={tutorialStep} onNextStep={handleNextTutorialStep} />
+          </div>
+        )}
+
+        {/* Scene Selector */}
+        <div className="animate-fade-in-up delay-100">
+          <SceneSelector 
+            scenes={scenes}
+            currentScene={settings.scene} 
+            onSceneChange={handleSceneChange} 
+          />
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 animate-fade-in-up delay-200">
+          {/* Camera Viewport */}
+          <div className="xl:col-span-2 bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-white">Visor da Câmera</h2>
+              <div className="flex space-x-2">
+                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-sm text-gray-400">Modo Live View</span>
+              </div>
+            </div>
+            
+            {/* Camera Viewfinder */}
+            <div className="relative aspect-video bg-black rounded-lg overflow-hidden border-2 border-gray-600">
+              {/* Main Image */}
               <div
-                className="grain-overlay"
-                style={getGrainStyle()}
-              />
+                className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600"
+                style={getImageStyle()}
+              ></div>
+              
+              {/* Simulated Photography Subject */}
+              <div className="absolute inset-0 flex items-center justify-center" style={getImageStyle()}>
+                <div className="w-32 h-40 bg-gradient-to-b from-amber-200 to-amber-600 rounded-t-full opacity-80 shadow-lg"></div>
+              </div>
+
+              {/* Grid Lines (Rule of Thirds) */}
+              <div className="absolute inset-0 opacity-30">
+                <div className="absolute top-1/3 left-0 right-0 h-px bg-white"></div>
+                <div className="absolute top-2/3 left-0 right-0 h-px bg-white"></div>
+                <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white"></div>
+                <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white"></div>
+              </div>
+
+              {/* Camera Info Overlay */}
+              <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-2 rounded text-sm font-mono">
+                <div>f/{settings.aperture} | {settings.shutterSpeed >= 1 ? `${settings.shutterSpeed}"` : `1/${Math.round(1/settings.shutterSpeed)}`} | ISO {settings.iso}</div>
+                <div>{settings.focalLength}mm | WB: {settings.whiteBalance === 0 ? 'Auto' : `${settings.whiteBalance}K`}</div>
+              </div>
+
+              {/* Focus Point */}
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 border-2 border-green-400 rounded animate-pulse"></div>
             </div>
           </div>
-            <CameraControls settings={settings} setSettings={setSettings} defaultSettings={defaultSettings} />
-            <div className="text-center p-4 text-[#1c170d]">
-              {getFeedbackMessage()}
+
+          {/* Controls Panel */}
+          <div className="space-y-6">
+            {/* Camera Controls */}
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 p-6 shadow-2xl">
+              <h3 className="text-xl font-bold mb-4 text-center">Controles da Câmera</h3>
+              <CameraControls settings={settings} setSettings={setSettings} />
             </div>
-            <div className="flex justify-center p-4">
-              <button
-                onClick={() => setSettings(defaultSettings)}
-                className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-[#f4efe7] text-[#1c170d] text-sm font-bold leading-normal tracking-[0.015em]"
-              >
-                Resetar Configurações
-              </button>
+
+            {/* Exposure Information */}
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 p-6 shadow-2xl">
+              <ExposureBar 
+                shutterSpeed={settings.shutterSpeed}
+                aperture={settings.aperture}
+                iso={settings.iso}
+              />
             </div>
           </div>
         </div>
