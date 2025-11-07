@@ -1,99 +1,127 @@
-import React from 'react';
-import Slider from './Slider';
-import Tooltip from './Tooltip';
+import React, { useState } from 'react';
+import InteractiveControl from './InteractiveControl';
+import { ApertureIcon, ShutterSpeedIcon, ISOIcon, WhiteBalanceIcon, FocalLengthIcon } from './Icons';
 
-type CameraSettings = {
-  aperture: number;
-  iso: number;
-  exposureTime: number;
-  lightIntensity: number;
-  lightPosition: number;
+// --- Constants ---
+const APERTURE_VALUES = [1.4, 2, 2.8, 4, 5.6, 8, 11, 16, 22];
+const SHUTTER_SPEED_VALUES = [1, 1/2, 1/4, 1/8, 1/15, 1/30, 1/60, 1/125, 1/250, 1/500, 1/1000];
+const ISO_VALUES = [100, 200, 400, 800, 1600, 3200, 6400];
+const WHITE_BALANCE_MODES = {
+  'Auto': 0, 'Daylight': 5500, 'Cloudy': 6500, 'Shade': 7500, 'Tungsten': 3200, 'Fluorescent': 4000
 };
+const FOCAL_LENGTH_VALUES = [24, 35, 50, 70, 85, 135, 200];
+const WB_NAMES = Object.keys(WHITE_BALANCE_MODES);
+const WB_VALUES = Object.values(WHITE_BALANCE_MODES);
+
+// --- Types ---
+interface CameraSettings {
+  aperture: number;
+  shutterSpeed: number;
+  iso: number;
+  whiteBalance: number;
+  focalLength: number;
+  scene: string;
+}
 
 interface CameraControlsProps {
   settings: CameraSettings;
   setSettings: React.Dispatch<React.SetStateAction<CameraSettings>>;
-  defaultSettings: CameraSettings;
 }
 
-const CameraControls: React.FC<CameraControlsProps> = ({
-  settings,
-  setSettings,
-}) => {
-  const { aperture, iso, exposureTime, lightIntensity, lightPosition } = settings;
+type ActiveControl = 'aperture' | 'shutterSpeed' | 'iso' | 'whiteBalance' | 'focalLength' | null;
 
-  const handleSettingChange = (setting: keyof CameraSettings, value: number) => {
-    setSettings((prev) => ({ ...prev, [setting]: value }));
+// --- Component ---
+const CameraControls: React.FC<CameraControlsProps> = ({ settings, setSettings }) => {
+  const [activeControl, setActiveControl] = useState<ActiveControl>(null);
+
+  const handleControlClick = (control: ActiveControl) => {
+    setActiveControl(prev => (prev === control ? null : control));
+  };
+
+  const handleSettingChange = (setting: keyof CameraSettings, index: number) => {
+    let value;
+    switch (setting) {
+      case 'aperture': value = APERTURE_VALUES[index]; break;
+      case 'shutterSpeed': value = SHUTTER_SPEED_VALUES[index]; break;
+      case 'iso': value = ISO_VALUES[index]; break;
+      case 'whiteBalance': value = WB_VALUES[index]; break;
+      case 'focalLength': value = FOCAL_LENGTH_VALUES[index]; break;
+      default: return;
+    }
+    setSettings(prev => ({ ...prev, [setting]: value }));
+  };
+
+  // --- Helpers ---
+  const formatShutterSpeed = (speed: number) => {
+    if (speed >= 1) return `${speed}"`;
+    return `1/${Math.round(1 / speed)}`;
+  };
+
+  const getCurrentWBName = () => {
+    return WB_NAMES[WB_VALUES.indexOf(settings.whiteBalance)] || 'Auto';
   };
 
   return (
-    <div>
-      <h2 className="text-[#1c170d] text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Controles da Câmera e Iluminação</h2>
+    <div className="flex justify-around items-center w-full bg-[#f4efe7] p-2 rounded-lg shadow-md">
+      {/* Aperture Control */}
+      <InteractiveControl
+        label="Abertura"
+        value={`f/${settings.aperture}`}
+        options={APERTURE_VALUES.map(v => `f/${v}`)}
+        currentValue={settings.aperture}
+        onChange={(e) => handleSettingChange('aperture', parseInt(e.target.value, 10))}
+        onClick={() => handleControlClick('aperture')}
+        isActive={activeControl === 'aperture'}
+        icon={<ApertureIcon />}
+      />
 
-      <Tooltip text="Controla a quantidade de luz que entra na câmera e a profundidade de campo.">
-        <Slider
-          label="Abertura"
-          value={`f/${aperture.toFixed(1)}`}
-          description=""
-          min={1.4}
-          max={22}
-          step={0.1}
-          currentValue={aperture}
-          onChange={(e) => handleSettingChange('aperture', parseFloat(e.target.value))}
-        />
-      </Tooltip>
+      {/* Shutter Speed Control */}
+      <InteractiveControl
+        label="Obturador"
+        value={formatShutterSpeed(settings.shutterSpeed)}
+        options={SHUTTER_SPEED_VALUES.map(formatShutterSpeed)}
+        currentValue={settings.shutterSpeed}
+        onChange={(e) => handleSettingChange('shutterSpeed', parseInt(e.target.value, 10))}
+        onClick={() => handleControlClick('shutterSpeed')}
+        isActive={activeControl === 'shutterSpeed'}
+        icon={<ShutterSpeedIcon />}
+      />
 
-      <Tooltip text="Define a sensibilidade do sensor à luz. Valores mais altos são úteis em ambientes com pouca luz, mas podem gerar ruído na imagem.">
-        <Slider
-          label="ISO"
-          value={iso.toString()}
-          description=""
-          min={100}
-          max={6400}
-          step={100}
-          currentValue={iso}
-          onChange={(e) => handleSettingChange('iso', parseInt(e.target.value, 10))}
-        />
-      </Tooltip>
+      {/* ISO Control */}
+      <InteractiveControl
+        label="ISO"
+        value={settings.iso}
+        options={ISO_VALUES}
+        currentValue={settings.iso}
+        onChange={(e) => handleSettingChange('iso', parseInt(e.target.value, 10))}
+        onClick={() => handleControlClick('iso')}
+        isActive={activeControl === 'iso'}
+        icon={<ISOIcon />}
+      />
 
-      <Tooltip text="Determina por quanto tempo o sensor fica exposto à luz. Tempos mais longos capturam mais luz, mas podem causar desfoque em objetos em movimento.">
-        <Slider
-          label="Tempo de Exposição"
-          value={`1/${exposureTime}s`}
-          description=""
-          min={1}
-          max={1000}
-          step={1}
-          currentValue={exposureTime}
-          onChange={(e) => handleSettingChange('exposureTime', parseInt(e.target.value, 10))}
-        />
-      </Tooltip>
+      {/* White Balance Control */}
+      <InteractiveControl
+        label="Balanço"
+        value={getCurrentWBName()}
+        options={WB_NAMES}
+        currentValue={settings.whiteBalance}
+        onChange={(e) => handleSettingChange('whiteBalance', parseInt(e.target.value, 10))}
+        onClick={() => handleControlClick('whiteBalance')}
+        isActive={activeControl === 'whiteBalance'}
+        icon={<WhiteBalanceIcon />}
+      />
 
-      <Tooltip text="Ajusta o brilho da fonte de luz principal.">
-        <Slider
-          label="Intensidade da Luz"
-          value={`${lightIntensity}%`}
-          description=""
-          min={0}
-          max={100}
-          step={1}
-          currentValue={lightIntensity}
-          onChange={(e) => handleSettingChange('lightIntensity', parseInt(e.target.value, 10))}
-        />
-      </Tooltip>
-
-      <Tooltip text="Controla o ângulo da luz em relação ao objeto, afetando sombras e reflexos.">
-        <Slider
-          label="Posição da Luz"
-          value={`${lightPosition}°`}
-          description=""
-          min={0}
-          max={90}
-          step={1}
-          currentValue={lightPosition}
-          onChange={(e) => handleSettingChange('lightPosition', parseInt(e.target.value, 10))}
-        />
-      </Tooltip>
+      {/* Focal Length Control */}
+      <InteractiveControl
+        label="Lente"
+        value={`${settings.focalLength}mm`}
+        options={FOCAL_LENGTH_VALUES.map(v => `${v}mm`)}
+        currentValue={settings.focalLength}
+        onChange={(e) => handleSettingChange('focalLength', parseInt(e.target.value, 10))}
+        onClick={() => handleControlClick('focalLength')}
+        isActive={activeControl === 'focalLength'}
+        icon={<FocalLengthIcon />}
+      />
     </div>
   );
 };
