@@ -13,10 +13,10 @@ const WHITE_BALANCE_MODES = {
 };
 const FOCAL_LENGTH_VALUES = [24, 35, 50, 70, 85, 135, 200];
 const SCENES = {
-  'Portrait': '/assets/images/placeholder-portrait.jpg',
-  'Action': '/assets/images/placeholder-action.jpg',
-  'Low Light': '/assets/images/placeholder-lowlight.jpg',
-  'Landscape': '/assets/images/placeholder-landscape.jpg',
+  'Portrait': '/assets/images/model.png', // Correct path for the model
+  'Action': null, // Using null for placeholder scenes
+  'Low Light': null,
+  'Landscape': null,
 };
 const SCENE_NAMES = Object.keys(SCENES);
 
@@ -49,8 +49,11 @@ function App() {
     const brightness = Math.max(0.1, 1 + (ev - 10) / 10);
     const motionBlur = shutterSpeed > 1/30 ? (shutterSpeed - 1/30) * 15 : 0;
     const scale = 1 + (focalLength - 50) / 100;
+    const modelImageUrl = SCENES[settings.scene as keyof typeof SCENES];
+
     return {
       filter: `brightness(${brightness}) blur(${motionBlur}px)`,
+      backgroundImage: modelImageUrl ? `url("${modelImageUrl}")` : 'none',
       transform: `scale(${scale})`,
       backgroundSize: 'cover',
       backgroundRepeat: 'no-repeat',
